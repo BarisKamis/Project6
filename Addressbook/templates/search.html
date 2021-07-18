@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %} Search Results {% endblock %}
+
+{% block main %}
+
+<div class="jumbotron">
+    <div class=container>
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Surname</th>
+                <th>Email</th>
+                <th>Phonenumber</th>
+            </tr>
+            {% for contact in contacts %}
+                <tr>
+                    <td>{{ contact.name }}</td>
+                    <td>{{ contact.surname }}</td>
+                    <td>{{ contact.email }}</td>
+                    <td>{{ contact.telefonnumber }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>   
+</div>    
+
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %} New Email {% endblock %}
+{% block main %}
+<div class="jumbotron">
+	<div class="container"> 
+		<div style="width:auto">
+			<form method="POST" action="/addcontact">
+        		<label for="name">First name:</label><br>
+  				<input type="text" id="fname" name="name"><br>
+  				<label for="lname">Last Name:</label><br>
+  				<input type="text" id="surname" name="surname" ><br>
+				<label for="email">Email:</label><br>
+  				<input type="text" id="email" name="email"><br>
+  				<label for="number">Phone number:</label><br>
+  				<input type="integer" id="telefonnumber" name="telefonnumber" ><br><br>
+  				<input type="submit" value="Submit">
+			</form>
+		</div>	
+	</div>
+</div>
+{% endblock %}
