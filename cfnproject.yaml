@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+ This CFN template deploys roman numbers app.
+Resources:
+  MyEc2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0dc2d3e4c0f9ebd18
+      InstanceType: t2.micro
+      KeyName: nmg
+      SecurityGroups:
+        - SSHogHTTP
+      Tags:
+        - Key: Name
+          Value: Baris_cfn
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y git clone
+          mkdir /home/ec2-user/project
+          chmod -R 777 /home/ec2-user/project
+          cd /home/ec2-user/project
+          git clone https://github.com/BarisKamis/Project6.git
+          pip3 install flask
+          python3 app.py
