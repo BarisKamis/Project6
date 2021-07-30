@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Bu template, ASG, ELB oluşturmaktadir. Basit bir applicatin EC2 lar üzerinde  çalışmakta ve ALB tarafından trafik yönlendirilmektedir. ASG, target traccing policy ile siteyi izlemekte ve ortalama CPU değerini takip etmektedir
+Parameters:
+  VpcIP:
+    Description: VpcId of your existing Virtual Private Cloud (VPC)
+    Type: AWS::EC2::VPC::Id
+  Subnets:
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    Type: List<AWS::EC2::Subnet::Id>
+  InstanceType:
+    Description: WebServer EC2 instance type.
+    Type: String
+    Default: t2.micro
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+  PolicyTargetValue:
+    Description: Please enter your Target value that triggers the Autoscaling.
+    Default: '60'
+    Type: String
+Resources:
+  Project6SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enables SSH and HTTP for EC2s and ALB.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  Project6LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      SecurityGroups:
+        - !GetAtt Project6SecurityGroup.GroupId
+      Subnets: !Ref Subnets
+
+  Project6ELBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 20
+      HealthCheckTimeoutSeconds: 6
+      HealthyThresholdCount: 3
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref VpcIP
+
+  Project6ELBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      DefaultActions: 
+        - Type: forward
+          TargetGroupArn: !Ref Project6ELBTargetGroup
+      LoadBalancerArn: !Ref Project6LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  Project6CPUPolicy:
+    Type: "AWS::AutoScaling::ScalingPolicy"
+    Properties:
+      AutoScalingGroupName: !Ref Project6AutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref PolicyTargetValue
+
+  Project6AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones: !GetAZs ""
+      LaunchConfigurationName: !Ref Project6LaunchConfig
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      DesiredCapacity: 2
+      MinSize: 1
+      MaxSize: 3
+      TargetGroupARNs:
+        - !Ref Project6ELBTargetGroup
+  Project6LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-0dc2d3e4c0f9ebd18 # Required
+      InstanceType: !Ref InstanceType  # Required
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - !Ref Project6SecurityGroup
+      UserData: !Base64 |
+          #!/bin/bash
+          yum update -y
+          yum install -y git clone
+          mkdir /home/ec2-user/project
+          pip3 install flask
+          pip3 install flask_sqlalchemy
+          chmod -R 777 /home/ec2-user/project
+          cd /home/ec2-user/project
+          git clone https://github.com/BarisKamis/Project6.git
+          pip3 install flask
+          cd /home/ec2-user/project/Project6/Addressbook
+          python3 app1.py
+Outputs:
+  URL:
+    Description: The URL of the website
+    Value: !Join 
+      - ''
+      - - 'http://'
+        - !GetAtt Project6LoadBalancer.DNSName
